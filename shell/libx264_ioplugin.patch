@@ -1,0 +1,102 @@
+diff --color -ruN /opt/resolve/Developer/CodecPlugin/Examples/x264_encoder_plugin/audio_encoder.h x264_encoder_plugin/audio_encoder.h
+--- /opt/resolve/Developer/CodecPlugin/Examples/x264_encoder_plugin/audio_encoder.h	2024-10-24 14:42:14.000000000 +0200
++++ x264_encoder_plugin/audio_encoder.h	2024-12-01 20:10:29.183887689 +0100
+@@ -1,6 +1,7 @@
+ #pragma once
+
+ #include "wrapper/plugin_api.h"
++#include <memory>
+
+ using namespace IOPlugin;
+ class UIAudioSettingsController;
+@@ -26,4 +27,4 @@
+ private:
+     std::unique_ptr<UIAudioSettingsController> m_pSettings;
+     HostCodecConfigCommon m_CommonProps;
+-};
+\ No newline at end of file
++};
+diff --color -ruN /opt/resolve/Developer/CodecPlugin/Examples/x264_encoder_plugin/Makefile x264_encoder_plugin/Makefile
+--- /opt/resolve/Developer/CodecPlugin/Examples/x264_encoder_plugin/Makefile	2024-10-24 14:42:14.000000000 +0200
++++ x264_encoder_plugin/Makefile	2024-12-01 20:28:26.546505190 +0100
+@@ -6,17 +6,20 @@
+ BUILD_DIR = .
+ SUBDIRS = wrapper
+
+-CFLAGS += -I$(X264_DIR)/include
++CFLAGS += -I$(X264_DIR) -I/usr/include/c++/11 -I/usr/include/c++/11/x86_64-redhat-linux
++
++BUNDLE_DIR = $(BASEDIR)x264_encoder_plugin.dvcp.bundle
+
+ ifeq ($(OS_TYPE), Linux)
+-LDFLAGS = -shared '-Wl,-rpath,$$ORIGIN' -Wl,-z,origin -lpthread -stdlib=libc++
++LDFLAGS = -shared '-Wl,-rpath,$$ORIGIN' -Wl,-z,origin -lpthread
+ else
+ LDFLAGS = -dynamiclib
+ endif
+
+ TARGET = $(BINDIR)/x264_encoder_plugin.dvcp
+
+-LDFLAGS += -L$(X264_DIR)/lib -lx264 -lz
++# (need to install zlib1g-dev on debian or zlib-devel on centos)
++LDFLAGS += -L$(X264_DIR) -lx264 -lz
+
+ OBJDIR = $(BUILD_DIR)/build
+ BINDIR = $(BUILD_DIR)/bin
+@@ -42,6 +45,8 @@
+ clean: clean-subdirs
+ 	rm -rf $(OBJDIR)
+ 	rm -rf $(BINDIR)
++	rm -rf $(BUNDLE_DIR)
++	rm -rf /app/IOPlugins
+
+ make-subdirs:
+ 	@for subdir in $(SUBDIRS); do \
+@@ -54,3 +59,9 @@
+ 	echo "Making clean in $$subdir"; \
+ 	(cd $$subdir; make clean; cd ..) \
+ 	done
++
++install:
++	mkdir -p $(BUNDLE_DIR)/Contents/Linux-x86-64
++	cp bin/x264_encoder_plugin.dvcp $(BUNDLE_DIR)/Contents/Linux-x86-64
++	mkdir -p /app/IOPlugins
++	cp -r $(BUNDLE_DIR) /app/IOPlugins
+diff --color -ruN /opt/resolve/Developer/CodecPlugin/Examples/x264_encoder_plugin/.mk.defs x264_encoder_plugin/.mk.defs
+--- /opt/resolve/Developer/CodecPlugin/Examples/x264_encoder_plugin/.mk.defs	2024-10-24 14:42:14.000000000 +0200
++++ x264_encoder_plugin/.mk.defs	2024-12-01 20:27:59.135649746 +0100
+@@ -1,11 +1,11 @@
+ PLUGIN_DEF_DIR = $(BASEDIR)include
+
+ OS_TYPE := $(shell uname -s)
+-CC = clang++
++CC = g++
+ CPP = $(CC) -E
+ AR = ar
+
+-CFLAGS = -fPIC -stdlib=libc++ -std=c++11 -Wall -I$(PLUGIN_DEF_DIR)
++CFLAGS = -fPIC -std=c++11 -Wall -I$(PLUGIN_DEF_DIR)
+
+ ifndef DBG
+ CFLAGS += -O2
+diff --color -ruN /opt/resolve/Developer/CodecPlugin/Examples/x264_encoder_plugin/x264_encoder.cpp x264_encoder_plugin/x264_encoder.cpp
+--- /opt/resolve/Developer/CodecPlugin/Examples/x264_encoder_plugin/x264_encoder.cpp	2024-10-24 14:42:14.000000000 +0200
++++ x264_encoder_plugin/x264_encoder.cpp	2024-12-01 20:10:29.184887721 +0100
+@@ -197,6 +197,8 @@
+             valuesVec.push_back(3);
+             textsVec.push_back("High 422");
+             valuesVec.push_back(4);
++            textsVec.push_back("High 444");
++            valuesVec.push_back(5);
+
+             item.MakeComboBox("h264 Profile", textsVec, valuesVec, m_Profile);
+             if (!item.IsSuccess() || !p_pSettingsList->Append(&item))
+@@ -340,6 +342,8 @@
+                 break;
+             case 4:
+                 pProfile = x264_profile_names[4];
++            case 5:
++                pProfile = x264_profile_names[5];
+             default:
+                 break;
+         }

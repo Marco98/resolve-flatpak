@@ -2,4 +2,5 @@ build-dir
 .idea
 venv
 repo
+.repo
 .flatpak-builder

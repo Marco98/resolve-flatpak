@@ -62,12 +62,13 @@ modules:
   - name: resolve
     buildsystem: simple
     build-options:
+      env:
+        RESOLVE_DOWNLOAD_ID: 7a7cba986c49429ea53fdc2e690ffc8f # DaVinci Resolve Studio 19.1.1
       build-args:
         - --share=network
     build-commands:
       - install -Dm644 logo.png /app/share/icons/hicolor/scalable/apps/com.blackmagic.ResolveStudio.png
-      - |
-        ./run_complete_installation.sh --studio
+      - ./run_complete_installation.sh --studio
     sources:
       - type: file
         path: python/build_metainfo.py
@@ -89,3 +90,15 @@ modules:
         path: requirements.txt
       - type: file
         path: logo.png
+  - name: ioplugin_libx264
+    buildsystem: simple
+    build-commands:
+      - ./setup_libx264.sh
+    sources:
+      - type: file
+        path: shell/setup_libx264.sh
+      - type: file
+        path: shell/libx264_ioplugin.patch
+      - type: git
+        url: https://code.videolan.org/videolan/x264.git
+        dest: x264
